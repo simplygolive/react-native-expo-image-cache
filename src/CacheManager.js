@@ -59,15 +59,23 @@ export default class CacheManager {
 }
 
 const getCacheEntry = async (uri: string): Promise<{ exists: boolean, path: string, tmpPath: string }> => {
-    const filename = uri.substring(uri.lastIndexOf("/"), uri.indexOf("?") === -1 ? uri.length : uri.indexOf("?"));
-    const ext = filename.indexOf(".") === -1 ? ".jpg" : filename.substring(filename.lastIndexOf("."));
+    let filename;
+    let ext;
+
+    try {
+        filename = uri.substring(uri.lastIndexOf("/"), uri.indexOf("?") === -1 ? uri.length : uri.indexOf("?"));
+        ext = filename.indexOf(".") === -1 ? ".jpg" : filename.substring(filename.lastIndexOf("."));
+    } catch (e) {
+        console.error(e);
+    }
+
     const path = `${BASE_DIR}${SHA1(uri)}${ext}`;
     const tmpPath = `${BASE_DIR}${SHA1(uri)}-${_.uniqueId()}${ext}`;
     // TODO: maybe we don't have to do this every time
     try {
         await FileSystem.makeDirectoryAsync(BASE_DIR);
     } catch (e) {
-        // do nothing
+        console.log(e);
     }
     const info = await FileSystem.getInfoAsync(path);
     const {exists} = info;
