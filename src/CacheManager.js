@@ -23,6 +23,11 @@ export class CacheEntry {
 
     async getPath(): Promise<?string> {
         const {uri, options} = this;
+
+        if (!uri) {
+            return null;
+        }
+
         const {path, exists, tmpPath} = await getCacheEntry(uri);
         if (exists) {
             return path;
