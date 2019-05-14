@@ -72,10 +72,14 @@ const getCacheEntry = async (uri: string): Promise<{ exists: boolean, path: stri
     }
 
     try {
+        if (!uri) {
+            return { exists: false };
+        }
+
         filename = uri.substring(uri.lastIndexOf("/"), uri.indexOf("?") === -1 ? uri.length : uri.indexOf("?"));
         ext = filename.indexOf(".") === -1 ? ".jpg" : filename.substring(filename.lastIndexOf("."));
     } catch (e) {
-        console.error(e);
+        console.log(e);
     }
 
     const path = `${BASE_DIR}${SHA1(uri)}${ext}`;
