@@ -1,7 +1,7 @@
 // @flow
-import * as _ from "lodash";
-import {FileSystem} from "expo";
-import SHA1 from "crypto-js/sha1";
+import * as _ from 'lodash';
+import {FileSystem} from 'expo';
+import SHA1 from 'crypto-js/sha1';
 
 export type DownloadOptions = {
   md5?: boolean,
@@ -11,7 +11,6 @@ export type DownloadOptions = {
 const BASE_DIR = `${FileSystem.cacheDirectory}expo-image-cache/`;
 
 export class CacheEntry {
-
     uri: string;
     options: DownloadOptions;
     path: string;
@@ -28,22 +27,31 @@ export class CacheEntry {
             return null;
         }
 
-        const {path, exists, tmpPath} = await getCacheEntry(uri);
+        const { path, exists, tmpPath } = await getCacheEntry(uri);
         if (exists) {
             return path;
         }
-        const result = await FileSystem.createDownloadResumable(uri, tmpPath, options).downloadAsync();
-        // If the image download failed, we don't cache anything
-        if (result && result.status !== 200) {
-            return undefined;
+
+        try {
+            const result = await FileSystem.createDownloadResumable(uri, tmpPath, options).downloadAsync();
+            // If the image download failed, we don't cache anything
+            if (result && result.status !== 200) {
+                return null;
+            }
+        } catch (e) {
+            if (e.code === 'ENOENT') {
+                return null;
+            }
+
+            console.log(e);
         }
+
         await FileSystem.moveAsync({ from: tmpPath, to: path });
         return path;
     }
 }
 
 export default class CacheManager {
-
     static entries: { [uri: string]: CacheEntry } = {};
 
     static get(uri: string, options: DownloadOptions): CacheEntry {
@@ -57,6 +65,7 @@ export default class CacheManager {
         await FileSystem.deleteAsync(BASE_DIR, { idempotent: true });
         await FileSystem.makeDirectoryAsync(BASE_DIR);
     }
+
     static async getCacheSize(): Promise<number> {
         const {size} = await FileSystem.getInfoAsync(BASE_DIR, {size: true});
         return size;
@@ -81,8 +90,8 @@ const getCacheEntry = async (uri: string): Promise<{ exists: boolean, path: stri
             return { exists: false };
         }
 
-        filename = uri.substring(uri.lastIndexOf("/"), uri.indexOf("?") === -1 ? uri.length : uri.indexOf("?"));
-        ext = filename.indexOf(".") === -1 ? ".jpg" : filename.substring(filename.lastIndexOf("."));
+        filename = uri.substring(uri.lastIndexOf('/'), uri.indexOf('?') === -1 ? uri.length : uri.indexOf('?'));
+        ext = filename.indexOf('.') === -1 ? '.jpg' : filename.substring(filename.lastIndexOf('.'));
     } catch (e) {
         console.log(e);
     }
@@ -90,7 +99,15 @@ const getCacheEntry = async (uri: string): Promise<{ exists: boolean, path: stri
     const path = `${BASE_DIR}${SHA1(uri)}${ext}`;
     const tmpPath = `${BASE_DIR}${SHA1(uri)}-${_.uniqueId()}${ext}`;
 
-    const info = await FileSystem.getInfoAsync(path);
-    const { exists } = info;
-    return { exists, path, tmpPath };
+    try {
+        const info = await FileSystem.getInfoAsync(path);
+        const { exists } = info;
+        return { exists, path, tmpPath };
+    } catch (e) {
+        if (e.code !== 'ENOENT') {
+            console.log(e);
+        }
+
+        return { exists: false };
+    }
 };
