@@ -1,6 +1,8 @@
+// eslint-disable no-console
+
 // @flow
 import * as _ from 'lodash';
-import {FileSystem} from 'expo';
+import * as FileSystem from 'expo-file-system';
 import SHA1 from 'crypto-js/sha1';
 
 export type DownloadOptions = {
